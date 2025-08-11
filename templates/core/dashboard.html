@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Dashboard - Payment & File Upload System
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Welcome, {{ user.get_full_name|default:user.username }}</h2>
+    <div>
+        {% if not has_successful_payment %}
+            <button class="btn btn-primary" id="initiatePaymentBtn">
+                <i class="bi bi-credit-card me-2"></i>Pay ৳100 to Upload Files
+            </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Payment Status Messages -->
+<div class="row">
+    <div class="col-md-12">
+        {% if payment_status == 'success' %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong>Payment Successful!</strong> Your payment of ৳100 has been processed successfully. Transaction ID: {{ transaction_id }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% elif payment_status == 'failed' %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-x-circle-fill me-2"></i>
+                <strong>Payment Failed!</strong> Your payment could not be processed. Transaction ID: {{ transaction_id }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% elif payment_status == 'cancelled' %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Payment Cancelled!</strong> You cancelled the payment. Transaction ID: {{ transaction_id }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- File Upload Section -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-upload me-2"></i>File Upload
+                </h5>
+                {% if has_successful_payment %}
+                    <span class="badge bg-success">
+                        <i class="bi bi-check-circle me-1"></i>Payment Verified
+                    </span>
+                {% else %}
+                    <span class="badge bg-warning">
+                        <i class="bi bi-exclamation-circle me-1"></i>Payment Required
+                    </span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if has_successful_payment %}
+                    <form method="post" enctype="multipart/form-data" action="{% url 'fileupload-list' %}" id="fileUploadForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Select File (.txt or .docx)</label>
+                            <div class="input-group">
+                                <input class="form-control" type="file" id="file" name="file" required accept=".txt,.docx">
+                                <label class="input-group-text" for="file">
+                                    <i class="bi bi-file-earmark"></i>
+                                </label>
+                            </div>
+                            <div class="form-text">Supported file types: .txt, .docx (Max size: 10MB)</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-cloud-upload me-2"></i>Upload File
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning d-flex align-items-center" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <div>
+                            You need to pay ৳100 before you can upload files. Click the "Pay ৳100 to Upload Files" button above to proceed.
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Tables Section -->
+<div class="row mt-4">
+    <!-- Uploaded Files -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-files me-2"></i>Uploaded Files
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if files %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Filename</th>
+                                    <th>Upload Time</th>
+                                    <th>Status</th>
+                                    <th>Word Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for file in files %}
+                                    <tr>
+                                        <td>
+                                            <i class="bi bi-file-earmark-text me-2"></i>{{ file.filename }}
+                                        </td>
+                                        <td>{{ file.upload_time|date:"Y-m-d H:i" }}</td>
+                                        <td>
+                                            {% if file.status == 'completed' %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle me-1"></i>{{ file.status }}
+                                                </span>
+                                            {% elif file.status == 'processing' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="bi bi-hourglass-split me-1"></i>{{ file.status }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-x-circle me-1"></i>{{ file.status }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if file.word_count %}
+                                                <span class="badge bg-info">{{ file.word_count }}</span>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">No files uploaded yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-credit-card me-2"></i>Payment History
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if payments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                    <tr>
+                                        <td>
+                                            <i class="bi bi-hash me-2"></i>{{ payment.transaction_id }}
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold">৳{{ payment.amount }}</span>
+                                        </td>
+                                        <td>
+                                            {% if payment.status == 'success' %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle me-1"></i>{{ payment.status }}
+                                                </span>
+                                            {% elif payment.status == 'pending' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="bi bi-hourglass-split me-1"></i>{{ payment.status }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-x-circle me-1"></i>{{ payment.status }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ payment.timestamp|date:"Y-m-d H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-credit-card text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">No payment history.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity me-2"></i>Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if activities %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                    <th>Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for activity in activities %}
+                                    <tr>
+                                        <td>
+                                            {% if activity.action == 'payment_initiated' %}
+                                                <span class="badge bg-primary">
+                                                    <i class="bi bi-credit-card me-1"></i>{{ activity.action }}
+                                                </span>
+                                            {% elif activity.action == 'payment_successful' %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle me-1"></i>{{ activity.action }}
+                                                </span>
+                                            {% elif activity.action == 'file_uploaded' %}
+                                                <span class="badge bg-info">
+                                                    <i class="bi bi-cloud-upload me-1"></i>{{ activity.action }}
+                                                </span>
+                                            {% elif activity.action == 'file_processed' %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle me-1"></i>{{ activity.action }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-info-circle me-1"></i>{{ activity.action }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if activity.metadata %}
+                                                <small class="text-muted">
+                                                    <pre class="mb-0">{{ activity.metadata }}</pre>
+                                                </small>
+                                            {% else %}
+                                                <span class="text-muted">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ activity.timestamp|date:"Y-m-d H:i" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-activity text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">No activity yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the token from the template context
+    const authToken = "{{ auth_token }}";
+    
+    // Debug: Log the token to verify it's available
+    console.log('Auth Token:', authToken);
+    
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Handle payment button
+    const initiatePaymentBtn = document.getElementById('initiatePaymentBtn');
+    if (initiatePaymentBtn) {
+        initiatePaymentBtn.addEventListener('click', async function() {
+            try {
+                if (!authToken) {
+                    throw new Error('Authentication token not available');
+                }
+                
+                // Show loading state
+                initiatePaymentBtn.disabled = true;
+                initiatePaymentBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+                
+                // Initiate payment
+                const paymentResponse = await fetch('/api/initiate-payment/', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Token ${authToken}`,
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({})
+                });
+                
+                const paymentData = await paymentResponse.json();
+                
+                // Reset button state
+                initiatePaymentBtn.disabled = false;
+                initiatePaymentBtn.innerHTML = '<i class="bi bi-credit-card me-2"></i>Pay ৳100 to Upload Files';
+                
+                if (paymentData.payment_url) {
+                    window.location.href = paymentData.payment_url;
+                } else {
+                    alert('Failed to initiate payment: ' + (paymentData.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred: ' + error.message);
+                
+                // Reset button state
+                initiatePaymentBtn.disabled = false;
+                initiatePaymentBtn.innerHTML = '<i class="bi bi-credit-card me-2"></i>Pay ৳100 to Upload Files';
+            }
+        });
+    }
+    
+    // Handle file upload form submission
+    const fileUploadForm = document.getElementById('fileUploadForm');
+    if (fileUploadForm) {
+        fileUploadForm.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Prevent default form submission
+            
+            const formData = new FormData(fileUploadForm);
+            
+            try {
+                // Check if token is available
+                if (!authToken) {
+                    throw new Error('Authentication token not available');
+                }
+                
+                console.log('Uploading file with token:', authToken);
+                
+                // Show loading state
+                const submitBtn = fileUploadForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Uploading...';
+                
+                // Upload file
+                const uploadResponse = await fetch('/api/files/', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Token ${authToken}`,
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'include',
+                    body: formData
+                });
+                
+                console.log('Upload response status:', uploadResponse.status);
+                
+                if (uploadResponse.ok) {
+                    alert('File uploaded successfully! It will be processed shortly.');
+                    window.location.reload();
+                } else {
+                    let errorData;
+                    try {
+                        errorData = await uploadResponse.json();
+                    } catch (e) {
+                        // If response is not JSON, get the text
+                        const errorText = await uploadResponse.text();
+                        console.error('Non-JSON error response:', errorText);
+                        alert('Failed to upload file. Server returned non-JSON response. Check console for details.');
+                        return;
+                    }
+                    console.error('Upload error:', errorData);
+                    alert('Failed to upload file: ' + (errorData.error || errorData.detail || 'Unknown error'));
+                }
+                
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>Upload File';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred: ' + error.message);
+                
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-cloud-upload me-2"></i>Upload File';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
