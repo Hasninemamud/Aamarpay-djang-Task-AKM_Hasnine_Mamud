@@ -128,7 +128,7 @@ redis-server
 Open a new terminal and run:
 
 ```bash
-celery -A payment_file_upload worker --loglevel=info
+celery -A your_project worker --loglevel=info --pool=solo
 ```
 
 ### Step 9: Start Django Server
