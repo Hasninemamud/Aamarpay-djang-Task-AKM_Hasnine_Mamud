@@ -17,7 +17,7 @@ urlpatterns = [
     path('api/payment/fail/', views.payment_fail, name='payment_fail'),
     path('api/payment/cancel/', views.payment_cancel, name='payment_cancel'),
     path('api/auth-token/', obtain_auth_token, name='auth_token'),
-    path('api/get-token/', views.get_auth_token, name='get_auth_token'),
+    # path('api/get-token/', views.get_auth_token, name='get_auth_token'),
     path('dashboard/', views.dashboard, name='dashboard'),  
     path('login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),

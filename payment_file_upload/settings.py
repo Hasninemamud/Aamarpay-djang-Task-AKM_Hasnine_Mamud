@@ -157,6 +157,9 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
+# Windows-specific configuration
+CELERY_WORKER_POOL = 'solo'
+
 
 # aamarPay Configuration
 AAMARPAY_CONFIG = {

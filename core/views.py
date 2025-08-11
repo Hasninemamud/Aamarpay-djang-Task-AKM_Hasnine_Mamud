@@ -12,7 +12,6 @@ from .models import FileUpload, PaymentTransaction, ActivityLog
 from .serializers import FileUploadSerializer, PaymentTransactionSerializer, ActivityLogSerializer
 from .tasks import process_file_word_count_with_content
 
-# core/views.py
 class FileUploadViewSet(viewsets.ModelViewSet):
     serializer_class = FileUploadSerializer
     permission_classes = [IsAuthenticated]
@@ -33,10 +32,6 @@ class FileUploadViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Debug: Log request data
-        print("Request data:", request.data)
-        print("Request files:", request.FILES)
-        
         try:
             # Get the file from request.FILES
             if 'file' not in request.FILES:
@@ -55,7 +50,6 @@ class FileUploadViewSet(viewsets.ModelViewSet):
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
-            print("Exception during file upload:", str(e))
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
@@ -63,19 +57,17 @@ class FileUploadViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         file_upload = serializer.save(user=self.request.user, status='processing')
-    
-        ActivityLog.objects.create(
-        user=self.request.user,
-        action='file_uploaded',
-        metadata={
-            'file_id': file_upload.id,
-            'filename': file_upload.filename
-        }
-        )
-    
-        process_file_word_count_with_content.delay(file_upload.id)
         
-
+        ActivityLog.objects.create(
+            user=self.request.user,
+            action='file_uploaded',
+            metadata={
+                'file_id': file_upload.id,
+                'filename': file_upload.filename
+            }
+        )
+        
+        process_file_word_count_with_content.delay(file_upload.id)
 
 class PaymentTransactionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PaymentTransactionSerializer
@@ -203,15 +195,6 @@ def payment_fail(request):
 def payment_cancel(request):
     return _handle_payment_callback(request, 'cancelled')
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_auth_token(request):
-    try:
-        token, _ = Token.objects.get_or_create(user=request.user)
-        return Response({'token': token.key})
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 from django.contrib.auth.decorators import login_required
 
 @login_required
@@ -228,7 +211,7 @@ def dashboard(request):
         'files': FileUpload.objects.filter(user=user).order_by('-upload_time'),
         'activities': ActivityLog.objects.filter(user=user).order_by('-timestamp')[:10],
         'payments': PaymentTransaction.objects.filter(user=user).order_by('-timestamp'),
-        'auth_token': token.key,  # This is crucial
+        'auth_token': token.key,
         'payment_status': request.GET.get('payment_status'),
         'transaction_id': request.GET.get('transaction_id'),
     }
